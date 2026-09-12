@@ -3,6 +3,12 @@
 Each JSON file in this directory defines an independently versioned benchmark
 suite. The filename is the short value accepted by `--suite`.
 
+Generate a new suite from reproducible filters with:
+
+```powershell
+rebench suite generate hard30 --count 30 --difficulty hard --seed 20260912
+```
+
 To create one safely:
 
 ```powershell

@@ -1,6 +1,6 @@
-# Rebench20
+# SWE-Rebench Agent Harness
 
-Rebench20 is a reproducible harness for comparing coding-agent configurations on
+SWE-Rebench Agent Harness is a reproducible tool for comparing coding-agent configurations on
 [SWE-rebench V2](https://huggingface.co/datasets/PrimeIntellect/SWE-rebench-V2-Filtered-Verified).
 Suites are ordinary JSON files, so the benchmark can grow beyond the original
 Hard-20 without changing the Python scripts.
@@ -72,6 +72,57 @@ evaluated.
 
 ## Create or change a suite
 
+Generate a deterministic, language-balanced suite directly from the dataset:
+
+```powershell
+rebench suite generate hard30 `
+  --count 30 `
+  --difficulty hard `
+  --languages python go java js ts rust `
+  --unique-repositories `
+  --seed 20260912
+```
+
+The built-in algorithms are `balanced` (the default) and `random`. Use
+`--algorithm random` to select randomly from the filtered pool. Optional filters
+include `--max-per-language`, `--exclude-task`, `--exclude-repo`, and
+`--exclude-suite`. For example, create a suite that does not overlap Hard-20:
+
+```powershell
+rebench suite generate hard30-new `
+  --count 30 `
+  --difficulty hard `
+  --languages python go java js ts rust `
+  --unique-repositories `
+  --exclude-suite hard20 `
+  --seed 20260912
+```
+
+To implement a different selection algorithm, generate a Python template:
+
+```powershell
+rebench selector create my_algorithm
+```
+
+Edit `selectors\my_algorithm.py`, then use it with:
+
+```powershell
+rebench suite generate experimental30 `
+  --count 30 `
+  --difficulty hard `
+  --languages python go java js ts rust `
+  --unique-repositories `
+  --seed 20260912 `
+  --selector selectors/my_algorithm.py
+```
+
+The generated suite records its dataset, filters, seed, exclusions, and
+selector, making the selection reproducible and reviewable.
+Custom selectors execute as local Python code, so only use selector files you
+trust and review.
+
+### Modify an existing suite
+
 Copy an existing suite to get a valid starting point:
 
 ```powershell
@@ -122,6 +173,7 @@ or suite. For example, prefer `codex-default-hard30` over reusing
 
 ```text
 configs/suites/     Versioned benchmark definitions
+selectors/          Versioned custom task-selection algorithms
 src/rebench/        Unified command-line interface and validation
 scripts/            Benchmark implementation (kept compatible)
 tests/              Fast tests that do not run Docker evaluations

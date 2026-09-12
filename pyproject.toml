@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rebench20"
-version = "0.1.0"
+name = "swe-rebench-harness"
+version = "0.2.0"
 description = "A reproducible multi-agent SWE-rebench benchmark harness"
 readme = "README.md"
 requires-python = ">=3.10"

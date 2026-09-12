@@ -18,6 +18,7 @@ def find_root() -> Path:
 
 ROOT = find_root()
 SUITES_DIR = ROOT / "configs" / "suites"
+SELECTORS_DIR = ROOT / "selectors"
 SCRIPTS_DIR = ROOT / "scripts"
 RUNS_DIR = ROOT / "runs"
 TASKS_DIR = ROOT / "tasks"

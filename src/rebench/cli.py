@@ -8,8 +8,18 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .paths import EVALUATOR_DIR, ROOT, RUNS_DIR, SCRIPTS_DIR, TASKS_DIR
+from .paths import EVALUATOR_DIR, ROOT, RUNS_DIR, SCRIPTS_DIR, SELECTORS_DIR, TASKS_DIR
+from .selection import (
+    BUILTIN_SELECTORS,
+    candidate_from_row,
+    filter_candidates,
+    load_selector,
+    validate_selection,
+)
 from .suites import SuiteError, load_suite, resolve_suite, suite_files, suite_summary, validate_suite
+
+
+DEFAULT_DATASET = "PrimeIntellect/SWE-rebench-V2-Filtered-Verified"
 
 
 def _print_summary(path: Path, suite: dict) -> None:
@@ -134,6 +144,177 @@ def command_suite_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def _resolve_user_selector(value: str) -> Path:
+    path = Path(value)
+    if path.parent == Path("."):
+        path = SELECTORS_DIR / path
+    elif not path.is_absolute():
+        path = ROOT / path
+    if path.suffix.lower() != ".py":
+        path = path.with_suffix(".py")
+    return path.resolve()
+
+
+def command_suite_generate(args: argparse.Namespace) -> int:
+    if args.count < 1:
+        raise SuiteError("--count must be at least 1")
+    if args.max_per_language is not None and args.max_per_language < 1:
+        raise SuiteError("--max-per-language must be at least 1")
+
+    target = resolve_suite(args.name)
+    if target.exists() and not args.force:
+        raise SuiteError(f"Suite already exists: {target} (use --force to replace)")
+
+    excluded_tasks = set(args.exclude_task)
+    excluded_repos = set(args.exclude_repo)
+    for suite_value in args.exclude_suite:
+        _, excluded_suite = _validated_suite(suite_value)
+        excluded_tasks.update(task["instance_id"] for task in excluded_suite["tasks"])
+        excluded_repos.update(task["repo"] for task in excluded_suite["tasks"])
+
+    print(f"Loading dataset: {args.dataset}")
+    from datasets import load_dataset
+
+    dataset = load_dataset(args.dataset, split="train")
+    candidates = [candidate_from_row(dict(row)) for row in dataset]
+    pool = filter_candidates(
+        candidates,
+        difficulty=args.difficulty,
+        languages=args.languages,
+        excluded_tasks=excluded_tasks,
+        excluded_repos=excluded_repos,
+    )
+    print(f"Eligible candidates: {len(pool)}")
+    if len(pool) < args.count:
+        raise SuiteError(f"Only {len(pool)} eligible candidates are available for {args.count} tasks")
+
+    options = {
+        "difficulty": args.difficulty,
+        "languages": [value.lower() for value in args.languages or []],
+        "unique_repositories": args.unique_repositories,
+        "max_per_language": args.max_per_language,
+    }
+    if not args.selector and args.algorithm == "balanced" and options["max_per_language"] is None:
+        language_count = len(options["languages"] or {candidate["language"] for candidate in pool})
+        options["max_per_language"] = (args.count + language_count - 1) // language_count
+    if args.selector:
+        selector_path = _resolve_user_selector(args.selector)
+        selector = load_selector(selector_path)
+        try:
+            selector_name = str(selector_path.relative_to(ROOT))
+        except ValueError:
+            selector_name = str(selector_path)
+    else:
+        selector = BUILTIN_SELECTORS[args.algorithm]
+        selector_name = args.algorithm
+
+    try:
+        proposed = selector(pool, count=args.count, seed=args.seed, options=dict(options))
+    except SuiteError:
+        raise
+    except Exception as exc:
+        raise SuiteError(f"Selector failed: {exc}") from exc
+    selected = validate_selection(
+        proposed,
+        pool,
+        count=args.count,
+        unique_repositories=args.unique_repositories,
+        max_per_language=options["max_per_language"],
+    )
+
+    suite = {
+        "name": args.name,
+        "dataset": args.dataset,
+        "policy": {
+            "allow_read_tests": True,
+            "allow_run_tests": True,
+            "allow_modify_tests": False,
+            "network": "disabled",
+        },
+        "constraints": {
+            "unique_repositories": args.unique_repositories,
+        },
+        "selection": {
+            "selector": selector_name,
+            "seed": args.seed,
+            "count": args.count,
+            "difficulty": args.difficulty,
+            "languages": options["languages"],
+            "max_per_language": options["max_per_language"],
+            "excluded_suites": args.exclude_suite,
+            "excluded_tasks": sorted(excluded_tasks),
+            "excluded_repositories": sorted(excluded_repos),
+        },
+        "tasks": [
+            {
+                "n": number,
+                "instance_id": candidate["instance_id"],
+                "repo": candidate["repo"],
+                "language": candidate["language"],
+                "difficulty": candidate["difficulty"],
+            }
+            for number, candidate in enumerate(selected, start=1)
+        ],
+    }
+    errors = validate_suite(suite)
+    if errors:
+        raise SuiteError("Generated suite is invalid:\n- " + "\n- ".join(errors))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(suite, indent=2) + "\n", encoding="utf-8")
+    print(f"Generated suite: {target}")
+    _print_summary(target, suite)
+    print(f"Next: rebench gold --suite {target.stem}")
+    return 0
+
+
+SELECTOR_TEMPLATE = '''"""Custom Rebench task-selection algorithm.
+
+Candidates have: instance_id, repo, language, difficulty, base_commit,
+created_at, and image_name. Common CLI filters are applied before this runs.
+"""
+
+import random
+
+
+def select_tasks(candidates, *, count, seed, options):
+    """Return exactly ``count`` candidate dictionaries."""
+    pool = list(candidates)
+
+    # Replace this example ranking with your own scoring or grouping logic.
+    random.Random(seed).shuffle(pool)
+
+    selected = []
+    used_repositories = set()
+    language_counts = {}
+    maximum = options.get("max_per_language")
+
+    for candidate in pool:
+        if options.get("unique_repositories") and candidate["repo"] in used_repositories:
+            continue
+        language = candidate["language"]
+        if maximum is not None and language_counts.get(language, 0) >= maximum:
+            continue
+        selected.append(candidate)
+        used_repositories.add(candidate["repo"])
+        language_counts[language] = language_counts.get(language, 0) + 1
+        if len(selected) == count:
+            return selected
+
+    raise ValueError(f"Could select only {len(selected)} of {count} requested tasks")
+'''
+
+
+def command_selector_create(args: argparse.Namespace) -> int:
+    path = _resolve_user_selector(args.name)
+    if path.exists() and not args.force:
+        raise SuiteError(f"Selector already exists: {path} (use --force to replace)")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(SELECTOR_TEMPLATE, encoding="utf-8")
+    print(f"Created selector: {path}")
+    print("Edit select_tasks(), then pass the file with --selector.")
+    return 0
+
+
 def command_doctor(args: argparse.Namespace) -> int:
     checks: list[tuple[str, bool, str]] = []
     checks.append(("Python 3.10+", sys.version_info >= (3, 10), sys.version.split()[0]))
@@ -224,6 +405,30 @@ def build_parser() -> argparse.ArgumentParser:
     suite_remove.add_argument("suite")
     suite_remove.add_argument("instance_id")
     suite_remove.set_defaults(func=command_suite_remove)
+    suite_generate = suite_sub.add_parser("generate", help="generate a reproducible suite from dataset filters")
+    suite_generate.add_argument("name")
+    suite_generate.add_argument("--count", type=int, required=True)
+    suite_generate.add_argument("--difficulty", default="hard")
+    suite_generate.add_argument("--languages", nargs="+", default=None)
+    suite_generate.add_argument("--unique-repositories", action="store_true")
+    suite_generate.add_argument("--max-per-language", type=int, default=None)
+    suite_generate.add_argument("--seed", type=int, default=0)
+    suite_generate.add_argument("--dataset", default=DEFAULT_DATASET)
+    selection_method = suite_generate.add_mutually_exclusive_group()
+    selection_method.add_argument("--algorithm", choices=sorted(BUILTIN_SELECTORS), default="balanced")
+    selection_method.add_argument("--selector", default=None, help="custom Python selector file")
+    suite_generate.add_argument("--exclude-suite", action="append", default=[])
+    suite_generate.add_argument("--exclude-task", action="append", default=[])
+    suite_generate.add_argument("--exclude-repo", action="append", default=[])
+    suite_generate.add_argument("--force", action="store_true")
+    suite_generate.set_defaults(func=command_suite_generate)
+
+    selector = sub.add_parser("selector", help="create custom Python selection algorithms")
+    selector_sub = selector.add_subparsers(dest="selector_command", required=True)
+    selector_create = selector_sub.add_parser("create", help="create a Python selector template")
+    selector_create.add_argument("name")
+    selector_create.add_argument("--force", action="store_true")
+    selector_create.set_defaults(func=command_selector_create)
 
     doctor = sub.add_parser("doctor", help="check the local benchmark environment")
     doctor.add_argument("--suite", default=None)
