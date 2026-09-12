@@ -3,6 +3,53 @@ from pathlib import Path
 from datasets import load_dataset
 from _common import *
 
+WORKSPACE_PROMPT = Path(".rebench") / "task.md"
+
+
+def build_prompt(problem_statement, container, repo_dir):
+    return (
+        "# Task\n\n"
+        + problem_statement.rstrip()
+        + "\n\n"
+        + "Implement the requested fix directly in this repository.\n\n"
+        + "Do not only analyze, explain, or report what should be changed. "
+        + "Complete the implementation and leave the resulting code changes in the workspace.\n\n"
+        + "Do not modify test files. You may read and run existing tests.\n\n"
+        + "If you need to run Python, tests, builds, or other project commands, "
+        + "use this Docker container:\n"
+        + f"{container}\n\n"
+        + f"Repository path inside Docker: /{repo_dir}\n\n"
+        + "Command format:\n"
+        + f'docker exec {container} bash -lc "cd /{repo_dir} && <COMMAND>"\n\n'
+        + "Do not commit the changes. Leave the completed code changes in the workspace.\n"
+    )
+
+
+def install_workspace_prompt(workspace, prompt):
+    tracked = subprocess.run(
+        ["git", "-C", str(workspace), "ls-files", ".rebench"],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    if tracked.stdout.strip():
+        raise RuntimeError("Repository already tracks the reserved .rebench path")
+
+    exclude_path = workspace / ".git" / "info" / "exclude"
+    if not exclude_path.is_file():
+        raise RuntimeError(f"Missing Git exclude file: {exclude_path}")
+    exclude_lines = exclude_path.read_text(encoding="utf-8").splitlines()
+    if ".rebench/" not in exclude_lines:
+        with exclude_path.open("a", encoding="utf-8", newline="\n") as handle:
+            if exclude_path.stat().st_size:
+                handle.write("\n")
+            handle.write(".rebench/\n")
+
+    prompt_path = workspace / WORKSPACE_PROMPT
+    prompt_path.parent.mkdir(parents=True, exist_ok=True)
+    prompt_path.write_text(prompt, encoding="utf-8")
+    return prompt_path
+
 def write_task_files(row, suite_task):
     task_id = suite_task["instance_id"]
     out = TASKS_DIR / task_id
@@ -108,7 +155,19 @@ def main():
         container = container_name(args.config, st["n"])
 
         if run_dir.exists() and not args.force:
-            print(f"\nSKIP {st['n']:02d}: {run_dir} already exists (use --force to replace)")
+            meta_path = run_dir / "run.json"
+            if meta_path.is_file() and workspace.is_dir():
+                existing = json.loads(meta_path.read_text(encoding="utf-8"))
+                prompt = build_prompt(
+                    rows[task_id]["problem_statement"],
+                    existing["container"],
+                    existing["repo_dir"],
+                )
+                prompt_path = install_workspace_prompt(workspace, prompt)
+                (run_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
+                print(f"\nSKIP {st['n']:02d}: workspace already exists; refreshed {prompt_path}")
+            else:
+                print(f"\nSKIP {st['n']:02d}: {run_dir} already exists (use --force to replace)")
             continue
 
         if docker_container_exists(container):
@@ -166,17 +225,9 @@ def main():
             print(p.stderr)
             raise RuntimeError(f"Workspace verification failed for {task_id}")
 
-        prompt = (
-            rows[task_id]["problem_statement"].rstrip()
-            + "\n\n"
-            + "Do not modify test files. You may read and run existing tests.\n\n"
-            + "Run Python, test, build, and project commands inside this Docker container:\n"
-            + f"{container}\n\n"
-            + f"Repository path inside Docker: /{rdir}\n\n"
-            + "Command format:\n"
-            + f'docker exec {container} bash -lc "cd /{rdir} && <COMMAND>"\n'
-        )
+        prompt = build_prompt(rows[task_id]["problem_statement"], container, rdir)
         (run_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
+        workspace_prompt = install_workspace_prompt(workspace, prompt)
 
         run_meta = {
             **meta,
@@ -193,7 +244,7 @@ def main():
 
         print(f"Prepared: {run_dir}")
         print(f"Container: {container}")
-        print(f"Prompt: {run_dir / 'prompt.txt'}")
+        print(f"Prompt: {workspace_prompt}")
 
 if __name__ == "__main__":
     main()

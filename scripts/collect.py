@@ -40,8 +40,17 @@ def main():
             print(f"SKIP {run_dir.name}: container not running/present")
             continue
 
-        # Capture all modifications, including untracked files.
-        cmd = f"cd /{rdir} && git add -A && git diff --cached --binary > /tmp/agent.patch"
+        # Capture all modifications, including untracked files. The internal
+        # workspace prompt must stay ignored and out of the submitted patch.
+        cmd = (
+            f"cd /{rdir} && "
+            "if test -e .rebench/task.md && ! git check-ignore -q .rebench/task.md; "
+            "then echo '.rebench/task.md is not ignored' >&2; exit 3; fi && "
+            "git add -A && "
+            "if git diff --cached --name-only | grep -q '^\\.rebench/'; "
+            "then echo '.rebench content was staged' >&2; exit 4; fi && "
+            "git diff --cached --binary > /tmp/agent.patch"
+        )
         run(["docker", "exec", container, "bash", "-lc", cmd])
         run(["docker", "cp", f"{container}:/tmp/agent.patch", str((run_dir / "agent.patch").resolve())])
 

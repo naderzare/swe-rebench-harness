@@ -58,8 +58,9 @@ Prepare a batch for an agent configuration:
 rebench prepare codex-default 1 5 --suite hard20
 ```
 
-Give each agent the corresponding `prompt.txt` and `workspace` under
-`runs\codex-default\`. After the agents finish:
+Give each agent its `workspace` directory and ask it to read
+`.rebench\task.md`. The prompt is locally ignored by Git and cannot enter the
+collected patch. After the agents finish:
 
 ```powershell
 rebench collect codex-default 1 5 --suite hard20
