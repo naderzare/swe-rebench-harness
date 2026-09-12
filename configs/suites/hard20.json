@@ -1,0 +1,152 @@
+{
+  "name": "rebench-hard20-v1",
+  "dataset": "PrimeIntellect/SWE-rebench-V2-Filtered-Verified",
+  "policy": {
+    "allow_read_tests": true,
+    "allow_run_tests": true,
+    "allow_modify_tests": false,
+    "network": "disabled"
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "instance_id": "axelrod-python__axelrod-975",
+      "repo": "Axelrod-Python/Axelrod",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 2,
+      "instance_id": "apache__dubbo-go-hessian2-309",
+      "repo": "apache/dubbo-go-hessian2",
+      "language": "go",
+      "difficulty": "hard"
+    },
+    {
+      "n": 3,
+      "instance_id": "colinhacks__zod-4385",
+      "repo": "colinhacks/zod",
+      "language": "ts",
+      "difficulty": "hard"
+    },
+    {
+      "n": 4,
+      "instance_id": "mehcode__config-rs-217",
+      "repo": "mehcode/config-rs",
+      "language": "rust",
+      "difficulty": "hard"
+    },
+    {
+      "n": 5,
+      "instance_id": "honeycombio__beeline-nodejs-94",
+      "repo": "honeycombio/beeline-nodejs",
+      "language": "js",
+      "difficulty": "hard"
+    },
+    {
+      "n": 6,
+      "instance_id": "authorjapps__zerocode-619",
+      "repo": "authorjapps/zerocode",
+      "language": "java",
+      "difficulty": "hard"
+    },
+    {
+      "n": 7,
+      "instance_id": "conda__conda-8015",
+      "repo": "conda/conda",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 8,
+      "instance_id": "nats-io__nats-streaming-server-1140",
+      "repo": "nats-io/nats-streaming-server",
+      "language": "go",
+      "difficulty": "hard"
+    },
+    {
+      "n": 9,
+      "instance_id": "designliquido__delegua-742",
+      "repo": "DesignLiquido/delegua",
+      "language": "ts",
+      "difficulty": "hard"
+    },
+    {
+      "n": 10,
+      "instance_id": "rust-ndarray__ndarray-1417",
+      "repo": "rust-ndarray/ndarray",
+      "language": "rust",
+      "difficulty": "hard"
+    },
+    {
+      "n": 11,
+      "instance_id": "processmaker__modeler-903",
+      "repo": "ProcessMaker/modeler",
+      "language": "js",
+      "difficulty": "hard"
+    },
+    {
+      "n": 12,
+      "instance_id": "knowm__xchart-399",
+      "repo": "knowm/XChart",
+      "language": "java",
+      "difficulty": "hard"
+    },
+    {
+      "n": 13,
+      "instance_id": "mpmath__mpmath-819",
+      "repo": "mpmath/mpmath",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 14,
+      "instance_id": "algorand__indexer-1622",
+      "repo": "algorand/indexer",
+      "language": "go",
+      "difficulty": "hard"
+    },
+    {
+      "n": 15,
+      "instance_id": "firebase__firebase-tools-3096",
+      "repo": "firebase/firebase-tools",
+      "language": "ts",
+      "difficulty": "hard"
+    },
+    {
+      "n": 16,
+      "instance_id": "cedar-policy__cedar-1652",
+      "repo": "cedar-policy/cedar",
+      "language": "rust",
+      "difficulty": "hard"
+    },
+    {
+      "n": 17,
+      "instance_id": "dynamoosejs__dynamoose-798",
+      "repo": "dynamoosejs/dynamoose",
+      "language": "js",
+      "difficulty": "hard"
+    },
+    {
+      "n": 18,
+      "instance_id": "vackosar__gitflow-incremental-builder-249",
+      "repo": "vackosar/gitflow-incremental-builder",
+      "language": "java",
+      "difficulty": "hard"
+    },
+    {
+      "n": 19,
+      "instance_id": "qiskit-community__ffsim-248",
+      "repo": "qiskit-community/ffsim",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 20,
+      "instance_id": "score-spec__score-compose-73",
+      "repo": "score-spec/score-compose",
+      "language": "go",
+      "difficulty": "hard"
+    }
+  ]
+}

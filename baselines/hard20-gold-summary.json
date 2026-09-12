@@ -1,0 +1,13 @@
+{
+  "suite": "rebench-hard20-v1",
+  "suite_file": "configs/suites/hard20.json",
+  "validated_at": "2026-09-11T17:45:09-03:00",
+  "total_tasks": 20,
+  "passed_tasks": 20,
+  "failed_tasks": 0,
+  "all_ok": true,
+  "from_fail_to_pass_assertions": 1106,
+  "failed_from_pass_to_pass_assertions": 0,
+  "evaluation_errors": 0,
+  "report_sha256": "b3f7b13ff8f80eea86521e3e4d21245d8793fd006e24bf1d338c46ad8f4b9939"
+}

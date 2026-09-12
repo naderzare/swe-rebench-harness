@@ -1,0 +1,38 @@
+Rebench20 v1 harness
+
+Copy suite.json and scripts/ into the root of your existing swe-rebench-test folder.
+
+Expected root:
+  suite.json
+  SWE-rebench-V2/
+  tasks/
+  runs/
+  scripts/
+
+Prepare tasks 1-5 for a configuration:
+  python .\scripts\prepare_runs.py codex-default 1 5
+
+Give each agent:
+  - runs\<config>\<task>\prompt.txt
+  - runs\<config>\<task>\workspace
+
+After tasks 1-5 are finished:
+  python .\scripts\collect.py codex-default 1 5
+  python .\scripts\evaluate.py codex-default --workers 2
+  python .\scripts\status.py
+
+Later prepare 6-10:
+  python .\scripts\prepare_runs.py codex-default 6 10
+
+After 6-10 finish:
+  python .\scripts\collect.py codex-default 6 10
+  python .\scripts\evaluate.py codex-default --workers 2
+
+Evaluation is cumulative: after patches for 1-5 exist it evaluates 5;
+after patches for 1-10 exist it evaluates 10.
+
+To prepare another configuration, use a new config name:
+  python .\scripts\prepare_runs.py codex-high 1 5
+  python .\scripts\prepare_runs.py copilot-default 1 5
+
+Do not use --force on an existing run unless you intentionally want to erase that run's workspace.

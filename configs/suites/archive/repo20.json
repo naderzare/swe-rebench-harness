@@ -1,0 +1,152 @@
+{
+  "name": "rebench20-v1",
+  "dataset": "PrimeIntellect/SWE-rebench-V2-Filtered-Verified",
+  "policy": {
+    "allow_read_tests": true,
+    "allow_run_tests": true,
+    "allow_modify_tests": false,
+    "network": "disabled"
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "instance_id": "qiskit__qiskit-terra-8741",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "easy"
+    },
+    {
+      "n": 2,
+      "instance_id": "qiskit__qiskit-terra-8799",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "easy"
+    },
+    {
+      "n": 3,
+      "instance_id": "qiskit__qiskit-terra-8906",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "medium"
+    },
+    {
+      "n": 4,
+      "instance_id": "qiskit__qiskit-terra-8925",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "medium"
+    },
+    {
+      "n": 5,
+      "instance_id": "qiskit__qiskit-terra-8977",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "medium"
+    },
+    {
+      "n": 6,
+      "instance_id": "qiskit__qiskit-terra-8983",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 7,
+      "instance_id": "qiskit__qiskit-terra-8998",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "easy"
+    },
+    {
+      "n": 8,
+      "instance_id": "qiskit__qiskit-terra-9000",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "easy"
+    },
+    {
+      "n": 9,
+      "instance_id": "qiskit__qiskit-terra-9089",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "medium"
+    },
+    {
+      "n": 10,
+      "instance_id": "qiskit__qiskit-terra-9100",
+      "repo": "Qiskit/qiskit-terra",
+      "language": "python",
+      "difficulty": "hard"
+    },
+    {
+      "n": 11,
+      "instance_id": "platers__obsidian-linter-202",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 12,
+      "instance_id": "platers__obsidian-linter-208",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 13,
+      "instance_id": "platers__obsidian-linter-211",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 14,
+      "instance_id": "platers__obsidian-linter-225",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "medium"
+    },
+    {
+      "n": 15,
+      "instance_id": "platers__obsidian-linter-256",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "hard"
+    },
+    {
+      "n": 16,
+      "instance_id": "platers__obsidian-linter-269",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 17,
+      "instance_id": "platers__obsidian-linter-381",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 18,
+      "instance_id": "platers__obsidian-linter-393",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "easy"
+    },
+    {
+      "n": 19,
+      "instance_id": "platers__obsidian-linter-402",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "medium"
+    },
+    {
+      "n": 20,
+      "instance_id": "platers__obsidian-linter-406",
+      "repo": "platers/obsidian-linter",
+      "language": "ts",
+      "difficulty": "medium"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Generated benchmark data and local checkouts
+tasks/
+runs/
+repos/
+gold_validation/
+SWE-rebench-V2/
+.graph/
+
+# Generated selection artifacts and local logs
+candidate_*.csv
+hard20_candidates.csv
+hard20_candidates.json
+*.log
+
+# Editor and OS files
+*~
+*.un~
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
