@@ -105,7 +105,7 @@ def main():
 
         run_dir = config_dir / f'{st["n"]:02d}-{task_id}'
         workspace = run_dir / "workspace"
-        container = f'sr-{sanitize(args.config)}-{st["n"]:02d}'
+        container = container_name(args.config, st["n"])
 
         if run_dir.exists() and not args.force:
             print(f"\nSKIP {st['n']:02d}: {run_dir} already exists (use --force to replace)")
@@ -123,7 +123,7 @@ def main():
         print(f"\n=== Preparing task {st['n']:02d}: {task_id} ===")
         run(["docker", "pull", image])
 
-        tmp = f'sr-extract-{sanitize(args.config)}-{st["n"]:02d}'
+        tmp = container_name(args.config, st["n"], purpose="extract")
         if docker_container_exists(tmp):
             run(["docker", "rm", "-f", tmp], check=False)
 
@@ -135,6 +135,9 @@ def main():
         run([
             "docker", "run", "-d",
             "--name", container,
+            "--label", f"rebench.root={ROOT.resolve()}",
+            "--label", f"rebench.config={args.config}",
+            "--label", f"rebench.suite={suite['name']}",
             "--network", "none",
             "-v", f"{workspace.resolve()}:/{rdir}",
             "-w", f"/{rdir}",

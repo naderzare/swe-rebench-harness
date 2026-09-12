@@ -70,6 +70,14 @@ rebench status --suite hard20
 Evaluation is cumulative: only runs with collected, non-empty patches are
 evaluated.
 
+Docker container names include a short checkout-specific namespace, so two
+clones on the same computer do not collide. For CI or another stable naming
+scheme, set `REBENCH_NAMESPACE` before preparing tasks:
+
+```powershell
+$env:REBENCH_NAMESPACE = "ci-worker-1"
+```
+
 ## Create or change a suite
 
 Generate a deterministic, language-balanced suite directly from the dataset:

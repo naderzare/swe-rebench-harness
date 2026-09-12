@@ -28,6 +28,22 @@ def suite_fingerprint(suite):
 def sanitize(s):
     return re.sub(r"[^A-Za-z0-9_.-]+", "-", s)
 
+def harness_namespace():
+    configured = os.environ.get("REBENCH_NAMESPACE")
+    if configured:
+        return sanitize(configured)
+    resolved = str(ROOT.resolve()).casefold()
+    suffix = hashlib.sha256(resolved.encode("utf-8")).hexdigest()[:8]
+    return sanitize(f"{ROOT.name}-{suffix}")
+
+def container_name(config, task_number, purpose="run"):
+    prefix = "sr" if purpose == "run" else f"sr-{sanitize(purpose)}"
+    name = f"{prefix}-{harness_namespace()}-{sanitize(config)}-{task_number:02d}"
+    if len(name) <= 128:
+        return name
+    digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:10]
+    return f"{name[:117]}-{digest}"
+
 def run(cmd, cwd=None, check=True, capture=False):
     print("+", " ".join(map(str, cmd)))
     return subprocess.run(
