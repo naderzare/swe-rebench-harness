@@ -1,0 +1,3 @@
+[submodule "SWE-rebench-V2"]
+	path = SWE-rebench-V2
+	url = https://github.com/SWE-rebench/SWE-rebench-V2.git

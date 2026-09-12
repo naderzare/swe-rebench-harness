@@ -8,7 +8,20 @@ Hard-20 without changing the Python scripts.
 The current baseline is `configs/suites/hard20.json`. Its gold validation is
 20/20 as of 2026-09-11.
 
-## Install
+## Clone and install
+
+Clone this repository together with its pinned SWE-rebench evaluator:
+
+```powershell
+git clone --recurse-submodules https://github.com/naderzare/swe-rebench-harness.git
+cd swe-rebench-harness
+```
+
+If the repository was already cloned without submodules, initialize them with:
+
+```powershell
+git submodule update --init --recursive
+```
 
 From PowerShell in this repository:
 
@@ -17,12 +30,6 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .
-```
-
-If the evaluator is not already present, clone it once:
-
-```powershell
-git clone https://github.com/SWE-rebench/SWE-rebench-V2.git
 ```
 
 Verify the complete local setup:
@@ -121,8 +128,20 @@ tests/              Fast tests that do not run Docker evaluations
 tasks/              Generated private/evaluation task data (ignored)
 runs/               Generated workspaces, patches, and results (ignored)
 repos/              Local repository checkouts (ignored)
-SWE-rebench-V2/     External evaluator checkout (ignored)
+SWE-rebench-V2/     External evaluator pinned as a Git submodule
 ```
+
+## Update the evaluator
+
+The submodule stays on the verified commit until it is updated intentionally.
+To test a newer upstream evaluator:
+
+```powershell
+git submodule update --remote SWE-rebench-V2
+rebench gold --suite hard20
+```
+
+Only commit the new submodule pointer after gold validation passes.
 
 Selection utilities such as `select_hard20.py` remain under `scripts/` for now.
 They will be moved behind explicit suite-generation commands in a later phase.
