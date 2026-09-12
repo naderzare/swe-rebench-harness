@@ -321,8 +321,10 @@ def command_doctor(args: argparse.Namespace) -> int:
     checks.append(("Docker command", shutil.which("docker") is not None, shutil.which("docker") or "not found"))
     checks.append(("Evaluator", (EVALUATOR_DIR / "scripts" / "eval.py").is_file(), str(EVALUATOR_DIR)))
     checks.append(("Scripts", SCRIPTS_DIR.is_dir(), str(SCRIPTS_DIR)))
-    checks.append(("Tasks directory", TASKS_DIR.is_dir(), str(TASKS_DIR)))
-    checks.append(("Runs directory", RUNS_DIR.is_dir(), str(RUNS_DIR)))
+    for name, path in (("Tasks directory", TASKS_DIR), ("Runs directory", RUNS_DIR)):
+        ready = not path.exists() or path.is_dir()
+        detail = str(path) if path.exists() else f"{path} (created when needed)"
+        checks.append((name, ready, detail))
     try:
         path, suite = load_suite(args.suite)
         errors = validate_suite(suite)
