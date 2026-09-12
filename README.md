@@ -13,15 +13,22 @@ The current baseline is `configs/suites/hard20.json`. Its gold validation is
 From PowerShell in this repository:
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -e .
-rebench doctor
 ```
 
 If the evaluator is not already present, clone it once:
 
 ```powershell
 git clone https://github.com/SWE-rebench/SWE-rebench-V2.git
+```
+
+Verify the complete local setup:
+
+```powershell
+rebench doctor
 ```
 
 `rebench doctor` checks Python, Docker, the evaluator checkout, directories,
