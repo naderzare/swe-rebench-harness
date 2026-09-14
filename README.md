@@ -71,7 +71,12 @@ rebench status --suite hard20
 ```
 
 Evaluation is cumulative: only runs with collected, non-empty patches are
-evaluated.
+evaluated. Each evaluated run keeps the complete command output in
+`evaluation.log`. Failed `result.json` records also include `failure_reason`
+and a short `failure_excerpt`, so an exit code is not the only diagnostic.
+Resolution is determined from the benchmark's expected tests, not from the
+process exit code alone; some repositories have unrelated pre-existing test
+failures and can be resolved even when their overall test command is nonzero.
 
 Docker container names include a short checkout-specific namespace, so two
 clones on the same computer do not collide. For CI or another stable naming

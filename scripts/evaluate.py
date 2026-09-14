@@ -1,6 +1,67 @@
-import argparse, json, subprocess, sys
+import argparse, json, shutil, subprocess, sys
 from pathlib import Path
 from _common import *
+
+
+def failure_diagnostic(item, log_text):
+    """Classify a failed evaluation and retain a short useful excerpt."""
+    if item.get("passed_match"):
+        return None, []
+    if item.get("error"):
+        return "evaluator_error", [str(item["error"])]
+
+    lines = [line.strip() for line in log_text.splitlines() if line.strip()]
+    lowered = [line.lower() for line in lines]
+
+    categories = [
+        (
+            "patch_apply_failed",
+            ("patch failed", "patch does not apply", "corrupt patch"),
+        ),
+        (
+            "build_or_compile_failed",
+            (
+                "[build failed]", "undefined:", " undefined", "cannot find symbol",
+                "compilation error", "syntax error",
+            ),
+        ),
+        (
+            "missing_test_dependency",
+            ("command not found", "executable file not found", "no such file or directory"),
+        ),
+    ]
+    for reason, markers in categories:
+        matches = [
+            line for line, lower in zip(lines, lowered)
+            if any(marker in lower for marker in markers)
+        ]
+        if matches:
+            return reason, matches[:8]
+
+    failed_regressions = item.get("failed_from_pass_to_pass", [])
+    if failed_regressions:
+        return "existing_tests_regressed", failed_regressions[:8]
+    if item.get("exit_code") not in (None, 0):
+        useful = [line for line in lines if "fail" in line.lower() or "error" in line.lower()]
+        return "tests_or_test_command_failed", useful[:8]
+    return "expected_tests_not_observed", []
+
+
+def preserve_evaluation_log(item, run_dir):
+    """Copy the evaluator's shared log into the run before another run overwrites it."""
+    target = run_dir / "evaluation.log"
+    if target.exists():
+        target.unlink()
+    value = item.get("log_path")
+    if not value:
+        return "", ""
+    source = Path(value)
+    if not source.is_absolute():
+        source = EVALUATOR_DIR / Path(value.replace("\\", "/"))
+    if not source.is_file():
+        return "", ""
+    shutil.copyfile(source, target)
+    return target.name, target.read_text(encoding="utf-8", errors="replace")
 
 def main():
     ap = argparse.ArgumentParser()
@@ -90,6 +151,8 @@ def main():
         item = by_id.get(meta["instance_id"], {})
         ok = bool(item.get("passed_match"))
         solved += int(ok)
+        evaluation_log, log_text = preserve_evaluation_log(item, run_dir)
+        failure_reason, failure_excerpt = failure_diagnostic(item, log_text)
 
         result = {
             "instance_id": meta["instance_id"],
@@ -101,6 +164,9 @@ def main():
             "from_fail_to_pass": item.get("from_fail_to_pass", []),
             "failed_from_pass_to_pass": item.get("failed_from_pass_to_pass", []),
             "error": item.get("error", ""),
+            "failure_reason": failure_reason,
+            "failure_excerpt": failure_excerpt,
+            "evaluation_log": evaluation_log,
             "test_file_changes": meta.get("test_file_changes", []),
         }
         (run_dir / "result.json").write_text(
@@ -110,12 +176,15 @@ def main():
         meta["resolved"] = ok
         meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
         rows.append(result)
-        print(
+        line = (
             f'{meta["task_number"]:02d}  '
             f'{"PASS" if ok else "FAIL":4}  '
             f'{meta["difficulty"]:6}  '
             f'{meta["instance_id"]}'
         )
+        if failure_reason:
+            line += f"  ({failure_reason})"
+        print(line)
 
     summary = {
         "config": args.config,
