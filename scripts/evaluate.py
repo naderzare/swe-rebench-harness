@@ -71,7 +71,11 @@ def main():
     ]
 
     print(f"Evaluating {len(predictions)} completed task(s)...")
-    subprocess.run(cmd, cwd=str(EVALUATOR_DIR), check=True)
+    completed = subprocess.run(cmd, cwd=str(EVALUATOR_DIR), check=False)
+    if not report_json.exists():
+        raise RuntimeError(
+            f"Evaluator exited with code {completed.returncode} without writing {report_json}"
+        )
 
     report = json.loads(report_json.read_text(encoding="utf-8"))
     by_id = {x["instance_id"]: x for x in report["items"]}
@@ -102,6 +106,9 @@ def main():
         (run_dir / "result.json").write_text(
             json.dumps(result, indent=2), encoding="utf-8"
         )
+        meta["status"] = "evaluated"
+        meta["resolved"] = ok
+        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
         rows.append(result)
         print(
             f'{meta["task_number"]:02d}  '
@@ -129,6 +136,11 @@ def main():
     print(f"Solved:    {solved}/{len(rows)}")
     print(f"Score:     {100 * summary['score']:.1f}%")
     print(f"Summary:   {out_dir / 'summary.json'}")
+    if completed.returncode != 0:
+        print(
+            f"Evaluator exit code: {completed.returncode} "
+            "(unsolved tasks are recorded as FAIL above)"
+        )
 
 if __name__ == "__main__":
     main()

@@ -23,6 +23,7 @@ def main():
         raise SystemExit(f"No runs found for config: {args.config}")
 
     count = 0
+    empty = 0
     for run_dir in sorted(p for p in config_dir.iterdir() if p.is_dir() and not p.name.startswith("_")):
         n = task_number_from_dir(run_dir)
         if args.start is not None and (n is None or not (args.start <= n <= args.end)):
@@ -71,18 +72,26 @@ def main():
             )
         ]
 
+        size = (run_dir / "agent.patch").stat().st_size
         meta["changed_files"] = changed
         meta["test_file_changes"] = test_like
-        meta["status"] = "collected"
+        meta["status"] = "collected" if size else "no_changes"
         meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
-        size = (run_dir / "agent.patch").stat().st_size
+        if not size:
+            result_path = run_dir / "result.json"
+            if result_path.exists():
+                result_path.unlink()
+            print(f"{run_dir.name}: EMPTY - no agent code changes found")
+            empty += 1
+            continue
+
         print(f"{run_dir.name}: patch={size} bytes, changed={len(changed)}, test_files={len(test_like)}")
         if test_like:
             print("  WARNING test-file changes:", ", ".join(test_like))
         count += 1
 
-    print(f"\nCollected {count} run(s).")
+    print(f"\nCollected {count} non-empty run(s); {empty} empty run(s).")
 
 if __name__ == "__main__":
     main()
