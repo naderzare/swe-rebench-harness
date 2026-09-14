@@ -60,18 +60,9 @@ rebench prepare codex-default 1 5 --suite hard20
 
 Give each agent its `workspace` directory and ask it to read
 `.rebench\task.md`. The prompt is locally ignored by Git and cannot enter the
-collected patch. Agents may put temporary tests and diagnostic scripts in
-`.rebench\dev-tests\`; those files are also ignored and never submitted.
-
-Agents may read and run the repository's existing tests. They should restore
-any temporary edits to existing tests before finishing. During collection, the
-harness compares changed paths with the exact files touched by the evaluator's
-official `test_patch`. A conflict stops collection for that run and preserves
-the complete changes as `agent-full.patch` for diagnosis. Other test-like file
-names produce a warning but are not silently removed, because test naming
-conventions differ between projects.
-
-After the agents finish:
+collected patch. Agents may read and run existing tests, and may use temporary
+test changes while developing, but must discard every test-related addition,
+modification, rename, or deletion before finishing. After the agents finish:
 
 ```powershell
 rebench collect codex-default 1 5 --suite hard20
@@ -222,8 +213,6 @@ They will be moved behind explicit suite-generation commands in a later phase.
 
 - Do not use `--force` unless replacing an existing run workspace intentionally.
 - Do not commit `tasks/`; it can contain private gold data.
-- Let agents create disposable tests under `.rebench\dev-tests\`, not in the
-  repository's existing test files.
-- The collector rejects exact official-test conflicts, warns about other
-  test-like paths, and never silently discards ambiguous changes.
+- Agents must discard all test-related changes before finishing. The collector
+  reports common test-like paths as a final warning.
 - Preserve the generated report and suite name when publishing benchmark scores.
