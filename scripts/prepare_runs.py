@@ -14,7 +14,11 @@ def build_prompt(problem_statement, container, repo_dir):
         + "Implement the requested fix directly in this repository.\n\n"
         + "Do not only analyze, explain, or report what should be changed. "
         + "Complete the implementation and leave the resulting code changes in the workspace.\n\n"
-        + "Do not modify test files. You may read and run existing tests.\n\n"
+        + "You may read and run existing tests. You may create temporary tests or "
+        + "diagnostic scripts under `.rebench/dev-tests/`; that directory is not included "
+        + "in the submitted patch.\n\n"
+        + "Do not leave changes in the repository's existing test files. If you modify "
+        + "existing tests temporarily, restore those changes before finishing.\n\n"
         + "If you need to run Python, tests, builds, or other project commands, "
         + "use this Docker container:\n"
         + f"{container}\n\n"
@@ -47,6 +51,7 @@ def install_workspace_prompt(workspace, prompt):
 
     prompt_path = workspace / WORKSPACE_PROMPT
     prompt_path.parent.mkdir(parents=True, exist_ok=True)
+    (workspace / ".rebench" / "dev-tests").mkdir(parents=True, exist_ok=True)
     prompt_path.write_text(prompt, encoding="utf-8")
     return prompt_path
 

@@ -16,6 +16,8 @@ class WorkspacePromptTests(unittest.TestCase):
         self.assertIn("If you need to run Python", prompt)
         self.assertNotIn("Run Python, test, build", prompt)
         self.assertNotIn("for collection", prompt)
+        self.assertIn(".rebench/dev-tests/", prompt)
+        self.assertIn("restore those changes before finishing", prompt)
         self.assertIn("Do not commit", prompt)
 
     def test_installed_prompt_is_ignored_by_git(self):
@@ -26,12 +28,19 @@ class WorkspacePromptTests(unittest.TestCase):
 
             self.assertEqual(prompt_path, workspace / ".rebench" / "task.md")
             self.assertEqual(prompt_path.read_text(encoding="utf-8"), "task text\n")
+            self.assertTrue((workspace / ".rebench" / "dev-tests").is_dir())
             ignored = subprocess.run(
                 ["git", "-C", str(workspace), "check-ignore", ".rebench/task.md"],
                 capture_output=True,
                 text=True,
             )
             self.assertEqual(ignored.returncode, 0)
+            dev_test_ignored = subprocess.run(
+                ["git", "-C", str(workspace), "check-ignore", ".rebench/dev-tests/check.py"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(dev_test_ignored.returncode, 0)
             status = subprocess.run(
                 ["git", "-C", str(workspace), "status", "--porcelain"],
                 check=True,
