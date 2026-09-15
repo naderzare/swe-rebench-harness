@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -28,6 +29,16 @@ class ContainerNameTests(unittest.TestCase):
         name = _common.container_name("configuration-" * 20, 12)
         self.assertLessEqual(len(name), 128)
         self.assertTrue(name.startswith("sr-"))
+
+    def test_container_state_reports_running(self):
+        completed = subprocess.CompletedProcess([], 0, stdout="running\n", stderr="")
+        with patch.object(_common.subprocess, "run", return_value=completed):
+            self.assertEqual(_common.docker_container_state("example"), "running")
+
+    def test_container_state_reports_missing(self):
+        completed = subprocess.CompletedProcess([], 1, stdout="", stderr="not found")
+        with patch.object(_common.subprocess, "run", return_value=completed):
+            self.assertIsNone(_common.docker_container_state("missing"))
 
 
 if __name__ == "__main__":

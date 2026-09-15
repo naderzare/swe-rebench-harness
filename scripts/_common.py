@@ -62,6 +62,17 @@ def docker_container_exists(name):
     )
     return p.returncode == 0
 
+def docker_container_state(name):
+    """Return Docker's container state, or None when the container is absent."""
+    p = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Status}}", name],
+        text=True,
+        capture_output=True,
+    )
+    if p.returncode != 0:
+        return None
+    return p.stdout.strip() or None
+
 def public_image_name(image):
     prefix = "prime/primeintellect/"
     if image.startswith(prefix):

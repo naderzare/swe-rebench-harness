@@ -70,6 +70,12 @@ rebench evaluate codex-default --suite hard20 --workers 2
 rebench status --suite hard20
 ```
 
+Collection preserves container state. It uses a running prepared container as
+is; starts and later stops an exited container; temporarily unpauses a paused
+container; or creates a disposable collection container from the recorded image
+when the original container is missing. The existing workspace is never
+re-prepared or deleted. Evaluation continues to use separate clean containers.
+
 Evaluation is cumulative: only runs with collected, non-empty patches are
 evaluated. Each evaluated run keeps the complete command output in
 `evaluation.log`. Failed `result.json` records also include `failure_reason`

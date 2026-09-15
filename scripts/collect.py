@@ -1,6 +1,79 @@
 import argparse, json, subprocess
+from contextlib import contextmanager
 from pathlib import Path
 from _common import *
+
+
+@contextmanager
+def collection_container(meta, config, task_number, workspace_path=None):
+    """Provide a running container while preserving its original state."""
+    original = meta["container"]
+    state = docker_container_state(original)
+
+    if state == "running":
+        print(f"  CONTAINER RUNNING: {original}")
+        yield original
+        return
+
+    if state in {"created", "exited"}:
+        print(f"  CONTAINER STARTED TEMPORARILY: {original} (was {state})")
+        run(["docker", "start", original])
+        try:
+            if docker_container_state(original) != "running":
+                raise RuntimeError(f"Container did not stay running: {original}")
+            yield original
+        finally:
+            run(["docker", "stop", "--time", "2", original], check=False)
+        return
+
+    if state == "paused":
+        print(f"  CONTAINER UNPAUSED TEMPORARILY: {original}")
+        run(["docker", "unpause", original])
+        try:
+            yield original
+        finally:
+            run(["docker", "pause", original], check=False)
+        return
+
+    if state is not None:
+        raise RuntimeError(
+            f"Container {original} is in unsupported state '{state}'. "
+            "Wait for Docker to finish changing its state, then collect again."
+        )
+
+    workspace = Path(workspace_path or meta["workspace"]).resolve()
+    if not workspace.is_dir():
+        raise RuntimeError(f"Run workspace is missing: {workspace}")
+
+    temporary = container_name(config, task_number, purpose="collect")
+    if docker_container_state(temporary) is not None:
+        raise RuntimeError(
+            f"Temporary collection container already exists: {temporary}. "
+            "Another collection may be running."
+        )
+
+    rdir = meta["repo_dir"]
+    print(f"  CONTAINER CREATED TEMPORARILY: {temporary} (original missing)")
+    run([
+        "docker", "run", "-d", "--rm",
+        "--name", temporary,
+        "--label", f"rebench.root={ROOT.resolve()}",
+        "--label", f"rebench.config={config}",
+        "--label", "rebench.purpose=collect",
+        "--network", "none",
+        "-v", f"{workspace}:/{rdir}",
+        "-w", f"/{rdir}",
+        meta["image_name"],
+        "sleep", "infinity",
+    ])
+    try:
+        run([
+            "docker", "exec", temporary,
+            "git", "config", "--global", "--add", "safe.directory", f"/{rdir}",
+        ])
+        yield temporary
+    finally:
+        run(["docker", "stop", "--time", "2", temporary], check=False)
 
 def task_number_from_dir(run_dir):
     try:
@@ -34,12 +107,7 @@ def main():
             continue
 
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        container = meta["container"]
         rdir = meta["repo_dir"]
-
-        if not docker_container_exists(container):
-            print(f"SKIP {run_dir.name}: container not running/present")
-            continue
 
         # Capture all modifications, including untracked files. The internal
         # workspace prompt must stay ignored and out of the submitted patch.
@@ -52,15 +120,21 @@ def main():
             "then echo '.rebench content was staged' >&2; exit 4; fi && "
             "git diff --cached --binary > /tmp/agent.patch"
         )
-        run(["docker", "exec", container, "bash", "-lc", cmd])
-        run(["docker", "cp", f"{container}:/tmp/agent.patch", str((run_dir / "agent.patch").resolve())])
+        with collection_container(
+            meta, args.config, meta["task_number"], run_dir / "workspace"
+        ) as container:
+            run(["docker", "exec", container, "bash", "-lc", cmd])
+            run([
+                "docker", "cp", f"{container}:/tmp/agent.patch",
+                str((run_dir / "agent.patch").resolve()),
+            ])
 
-        # Record changed files and flag likely test-file modifications.
-        p = subprocess.run(
-            ["docker", "exec", container, "bash", "-lc",
-             f"cd /{rdir} && git diff --cached --name-only"],
-            text=True, capture_output=True, check=True
-        )
+            # Record changed files before a temporary container is stopped.
+            p = subprocess.run(
+                ["docker", "exec", container, "bash", "-lc",
+                 f"cd /{rdir} && git diff --cached --name-only"],
+                text=True, capture_output=True, check=True
+            )
         changed = [x.strip() for x in p.stdout.splitlines() if x.strip()]
         test_like = [
             x for x in changed
